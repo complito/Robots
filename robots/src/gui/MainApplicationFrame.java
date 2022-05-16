@@ -50,40 +50,35 @@ public class MainApplicationFrame extends JFrame
         addWindow(gameWindow);
 
         setJMenuBar(generateMenuBar());
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
         UIManager.put("OptionPane.yesButtonText", "Да");
         UIManager.put("OptionPane.noButtonText", "Нет");
 
-        addWindowListener(new WindowAdapter() {
-            public void windowClosing(WindowEvent ev) {
-                new WindowListener() {
-                    @Override
-                    public void windowOpened(WindowEvent e) {}
+        addWindowListener(new WindowListener() {
+            @Override
+            public void windowOpened(WindowEvent e) {}
 
-                    @Override
-                    public void windowClosing(WindowEvent e) {
-                        closingWindow();
-                    }
-
-                    @Override
-                    public void windowClosed(WindowEvent e) {}
-
-                    @Override
-                    public void windowIconified(WindowEvent e) {}
-
-                    @Override
-                    public void windowDeiconified(WindowEvent e) {}
-
-                    @Override
-                    public void windowActivated(WindowEvent e) {}
-
-                    @Override
-                    public void windowDeactivated(WindowEvent e) {}
-                };
+            @Override
+            public void windowClosing(WindowEvent e) {
+                closingWindow();
             }
+
+            @Override
+            public void windowClosed(WindowEvent e) {}
+
+            @Override
+            public void windowIconified(WindowEvent e) {}
+
+            @Override
+            public void windowDeiconified(WindowEvent e) {}
+
+            @Override
+            public void windowActivated(WindowEvent e) {}
+
+            @Override
+            public void windowDeactivated(WindowEvent e) {}
         });
-        setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
     }
 
     protected LogWindow createLogWindow()
