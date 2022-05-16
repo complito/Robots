@@ -14,12 +14,11 @@ import log.Logger;
  * Следует разделить его на серию более простых методов (или вообще выделить отдельный класс).
  *
  */
-public class MainApplicationFrame extends JFrame implements ActionListener
+public class MainApplicationFrame extends JFrame
 {
     private final JDesktopPane desktopPane = new JDesktopPane();
 
-    @Override
-    public void actionPerformed(ActionEvent e) {
+    public void closingWindow() {
         int result = JOptionPane.showConfirmDialog(
                 MainApplicationFrame.this,
                 "Закрыть приложение?",
@@ -58,7 +57,30 @@ public class MainApplicationFrame extends JFrame implements ActionListener
 
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent ev) {
-                actionPerformed(new ActionEvent(desktopPane, 0, "quit"));
+                new WindowListener() {
+                    @Override
+                    public void windowOpened(WindowEvent e) {}
+
+                    @Override
+                    public void windowClosing(WindowEvent e) {
+                        closingWindow();
+                    }
+
+                    @Override
+                    public void windowClosed(WindowEvent e) {}
+
+                    @Override
+                    public void windowIconified(WindowEvent e) {}
+
+                    @Override
+                    public void windowDeiconified(WindowEvent e) {}
+
+                    @Override
+                    public void windowActivated(WindowEvent e) {}
+
+                    @Override
+                    public void windowDeactivated(WindowEvent e) {}
+                };
             }
         });
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
@@ -81,7 +103,7 @@ public class MainApplicationFrame extends JFrame implements ActionListener
         frame.setVisible(true);
     }
 
-    private void addMenu(JMenuBar menuBar, String name, int mnemonic, String description, JMenuItem[] menuItems) {
+    private void addMenu(JMenuBar menuBar, String name, int mnemonic, String description, JMenuItem... menuItems) {
         JMenu menu = new JMenu(name);
         menu.setMnemonic(mnemonic);
         menu.getAccessibleContext().setAccessibleDescription(description);
@@ -90,32 +112,32 @@ public class MainApplicationFrame extends JFrame implements ActionListener
         menuBar.add(menu);
     }
 
+    private JMenuItem createMenuItem(String name, int keyEvent, ActionListener actionListener) {
+        JMenuItem jMenuItem = new JMenuItem(name, keyEvent);
+        jMenuItem.addActionListener(actionListener);
+        return jMenuItem;
+    }
+
     private JMenuBar generateMenuBar()
     {
         JMenuBar menuBar = new JMenuBar();
 
-        JMenuItem quitMenuItem = new JMenuItem("Закрыть приложение", KeyEvent.VK_Q);
-        quitMenuItem.addActionListener(this);
-
-        JMenuItem systemLookAndFeel = new JMenuItem("Системная схема", KeyEvent.VK_S);
-        systemLookAndFeel.addActionListener((event) -> {
+        JMenuItem systemLookAndFeel = createMenuItem("Системная схема", KeyEvent.VK_S, (event) -> {
             setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             this.invalidate();
         });
-
-        JMenuItem crossplatformLookAndFeel = new JMenuItem("Универсальная схема", KeyEvent.VK_S);
-        crossplatformLookAndFeel.addActionListener((event) -> {
+        JMenuItem crossplatformLookAndFeel = createMenuItem("Универсальная схема", KeyEvent.VK_S, (event) -> {
             setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
             this.invalidate();
         });
-
-        JMenuItem addLogMessageItem = new JMenuItem("Сообщение в лог", KeyEvent.VK_S);
-        addLogMessageItem.addActionListener((event) -> Logger.debug("Новая строка"));
+        JMenuItem addLogMessageItem = createMenuItem("Сообщение в лог", KeyEvent.VK_S, (event) ->
+                Logger.debug("Новая строка"));
+        JMenuItem quitMenuItem = createMenuItem("Закрыть приложение", KeyEvent.VK_Q, (event) -> closingWindow());
 
         addMenu(menuBar, "Режим отображения", KeyEvent.VK_V, "Управление режимом отображения приложения",
-                new JMenuItem[]{systemLookAndFeel, crossplatformLookAndFeel});
-        addMenu(menuBar, "Тесты", KeyEvent.VK_T, "Тестовые команды", new JMenuItem[]{addLogMessageItem});
-        addMenu(menuBar, "Другое", KeyEvent.VK_O, "Другие действия", new JMenuItem[]{quitMenuItem});
+                systemLookAndFeel, crossplatformLookAndFeel);
+        addMenu(menuBar, "Тесты", KeyEvent.VK_T, "Тестовые команды", addLogMessageItem);
+        addMenu(menuBar, "Другое", KeyEvent.VK_O, "Другие действия", quitMenuItem);
 
         return menuBar;
     }
