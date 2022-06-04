@@ -11,7 +11,11 @@ import log.LogChangeListener;
 import log.LogEntry;
 import log.LogWindowSource;
 
-public class LogWindow extends JInternalFrame implements LogChangeListener
+import java.beans.PropertyVetoException;
+import java.util.Map;
+import java.util.Properties;
+
+public class LogWindow extends JInternalFrame implements LogChangeListener, WindowState
 {
     private LogWindowSource m_logSource;
     private TextArea m_logContent;
@@ -46,5 +50,22 @@ public class LogWindow extends JInternalFrame implements LogChangeListener
     public void onLogChanged()
     {
         EventQueue.invokeLater(this::updateLogContent);
+    }
+
+    @Override
+    public Properties getWindowState() {
+        Properties properties = WindowState.super.getWindowState();
+        properties.setProperty("icon", String.valueOf(isIcon()));
+        return properties;
+    }
+
+    @Override
+    public void restoreWindowState(Map<String, String> properties) {
+        WindowState.super.restoreWindowState(properties);
+        try {
+            setIcon(Boolean.parseBoolean(properties.get("icon")));
+        } catch (PropertyVetoException e) {
+            e.printStackTrace();
+        }
     }
 }

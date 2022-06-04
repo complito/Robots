@@ -1,37 +1,23 @@
 package gui;
 
-import java.awt.Dimension;
-import java.awt.Toolkit;
+import java.awt.*;
 import java.awt.event.*;
+import java.io.*;
+import java.util.*;
 
 import javax.swing.*;
 
 import log.Logger;
 
-/**
- * Что требуется сделать:
- * 1. Метод создания меню перегружен функционалом и трудно читается.
- * Следует разделить его на серию более простых методов (или вообще выделить отдельный класс).
- *
- */
-public class MainApplicationFrame extends JFrame
+public class MainApplicationFrame extends JFrame implements WindowState
 {
     private final JDesktopPane desktopPane = new JDesktopPane();
-
-    public void closingWindow() {
-        int result = JOptionPane.showConfirmDialog(
-                MainApplicationFrame.this,
-                "Закрыть приложение?",
-                "Окно подтверждения",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE);
-        if (result == JOptionPane.YES_OPTION) {
-            dispose();
-            System.exit(0);
-        }
-    }
+    private final ArrayList<WindowState> windowsList = new ArrayList<>();
+    private final String filePath = System.getProperty("user.home") +
+            System.getProperty("file.separator") + "robots_config.xml";
 
     public MainApplicationFrame() {
+        windowsList.add(this);
         //Make the big window be indented 50 pixels from each edge
         //of the screen.
         int inset = 50;
@@ -43,42 +29,78 @@ public class MainApplicationFrame extends JFrame
         setContentPane(desktopPane);
 
         LogWindow logWindow = createLogWindow();
+        logWindow.setName("LogWindow");
         addWindow(logWindow);
 
         GameWindow gameWindow = new GameWindow();
         gameWindow.setSize(400,  400);
+        gameWindow.setName("GameWindow");
         addWindow(gameWindow);
 
         setJMenuBar(generateMenuBar());
-        setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
         UIManager.put("OptionPane.yesButtonText", "Да");
         UIManager.put("OptionPane.noButtonText", "Нет");
 
-        addWindowListener(new WindowListener() {
-            @Override
-            public void windowOpened(WindowEvent e) {}
+        InputStream inputStream;
+        Properties properties = null;
+        try {
+            inputStream = new FileInputStream(filePath);
+            properties = new Properties();
+            properties.loadFromXML(inputStream);
+            inputStream.close();
+        } catch (IOException e) {
+            showMessage("Восстановить состояние окон не получилось.");
+        }
+        if (properties != null)
+            for (WindowState window : windowsList)
+            {
+                Map<String, String> mapProperties = new HashMap<>();
+                Set<String> keys = properties.stringPropertyNames();
+                for (String key : keys)
+                    if (key.startsWith(window.getName()))
+                        mapProperties.put(key.substring(window.getName().length() + 1), properties.getProperty(key));
+                window.restoreWindowState(mapProperties);
+            }
 
+        setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
                 closingWindow();
             }
-
-            @Override
-            public void windowClosed(WindowEvent e) {}
-
-            @Override
-            public void windowIconified(WindowEvent e) {}
-
-            @Override
-            public void windowDeiconified(WindowEvent e) {}
-
-            @Override
-            public void windowActivated(WindowEvent e) {}
-
-            @Override
-            public void windowDeactivated(WindowEvent e) {}
         });
+    }
+
+    private void showMessage(String message) {
+        JOptionPane.showMessageDialog(MainApplicationFrame.this, message);
+    }
+
+    private void closingWindow() {
+        int result = JOptionPane.showConfirmDialog(
+                MainApplicationFrame.this,
+                "Закрыть приложение?",
+                "Окно подтверждения",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE);
+        if (result == JOptionPane.YES_OPTION) {
+            Properties properties = new Properties();
+            for (WindowState window : windowsList) {
+                Properties windowPosition = window.getWindowState();
+                Set<String> keys = windowPosition.stringPropertyNames();
+                for (String key : keys)
+                    properties.setProperty(window.getName() + "." + key, windowPosition.getProperty(key));
+            }
+            try {
+                OutputStream outputStream = new FileOutputStream(filePath);
+                properties.storeToXML(outputStream, null);
+                outputStream.close();
+            } catch (IOException e) {
+                showMessage("Сохранить состояние окон не получилось.");
+            }
+            dispose();
+            System.exit(0);
+        }
     }
 
     protected LogWindow createLogWindow()
@@ -86,7 +108,7 @@ public class MainApplicationFrame extends JFrame
         LogWindow logWindow = new LogWindow(Logger.getDefaultLogSource());
         logWindow.setLocation(10,10);
         logWindow.setSize(300, 800);
-        setMinimumSize(logWindow.getSize());
+//        setMinimumSize(logWindow.getSize());
         logWindow.pack();
         Logger.debug("Протокол работает");
         return logWindow;
@@ -95,6 +117,8 @@ public class MainApplicationFrame extends JFrame
     protected void addWindow(JInternalFrame frame)
     {
         desktopPane.add(frame);
+        if (frame instanceof WindowState)
+            windowsList.add((WindowState) frame);
         frame.setVisible(true);
     }
 
@@ -149,5 +173,15 @@ public class MainApplicationFrame extends JFrame
         {
             // just ignore
         }
+    }
+
+    @Override
+    public boolean isIcon() {
+        return getExtendedState() == Frame.ICONIFIED;
+    }
+
+    @Override
+    public void setIcon(boolean b) {
+        if (b) setExtendedState(Frame.ICONIFIED);
     }
 }
